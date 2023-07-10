@@ -4,7 +4,7 @@ import time
 from block import Block
 
 
-DIFFICULTY = 2
+DIFFICULTY = 4
 
 
 class Node:
@@ -13,6 +13,10 @@ class Node:
         self.network = network
         self.chain = [Block.get_genesis_block(DIFFICULTY).repr]
         self.node_list = set()
+        self.status = ""
+
+        # as computing power diff
+        self.interval = random.randint(1, 10)
 
     @classmethod
     def proof_hash(
@@ -73,21 +77,13 @@ class Node:
             ):
                 return False
 
-            last_block = block
+            last_block = str_block
 
         return True
 
-    def is_minded(self):
-        return self.update_block() or self.resolve_conflict()
-
-    def update_block(self):
-        for block in self.network.get_updated_block(self.node_id):
-            self.chain.append(block)
-            if not Node.is_valid_chain(self.chain):
-                self.chain.pop(-1)
-                return True
-
-        return False
+    def set_status(self, status):
+        self.status = status
+        time.sleep(0.5)             # for view
 
     def proof_of_work(self, previous_block_hash, new_transaction_list):
         new_transaction_list_hash = Block.hash(new_transaction_list)
@@ -96,7 +92,8 @@ class Node:
 
         while True:
             if nonce % 100 == 0:
-                if self.is_minded():
+                if self.resolve_conflict():
+                    self.set_status("resolved")
                     return
 
             if Node.is_valid_proof(
@@ -108,6 +105,8 @@ class Node:
             nonce += 1
 
     def mine(self):
+        time.sleep(self.interval)
+
         previous_block = self.chain[-1]
         new_transaction_list = self.network.get_transactions(self.node_id)
 
@@ -124,7 +123,7 @@ class Node:
         nonce = self.proof_of_work(previous_block_hash, str_transactions)
 
         if nonce is None:   # already been mined
-            return True
+            return False
 
         new_block = Block(
             timestamp=time.time(),
@@ -138,8 +137,6 @@ class Node:
 
         self.chain.append(new_block.repr)
 
-        self.network.broadcast_new_block(self.node_id, new_block.repr)
-
         return True
 
     def resolve_conflict(self):
@@ -149,26 +146,16 @@ class Node:
         for neighbor_chain in self.network.get_neighbor_chain_list(self.node_id):
             if Node.is_valid_chain(neighbor_chain):
                 if len(neighbor_chain) > len(longest_chain):
-                    longest_chain = neighbor_chain
                     bool_resolved = True
+                    longest_chain = neighbor_chain
 
         self.chain = longest_chain
         return bool_resolved
 
     def run(self):
         while True:
+            self.set_status("mining...")
             if self.mine():
-                ...
-                # print(self.node_id[:4], "mined")
-
-            if self.update_block():
-                ...
-                # print(self.node_id[:4], "updated")
-
-            if self.resolve_conflict():
-                ...
-                # print(self.node_id, "resolved")
+                self.set_status("mined\t")
 
             self.network.update_chain(self.node_id, self.chain)
-
-            time.sleep(random.random() * 5)

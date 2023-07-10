@@ -13,10 +13,10 @@ from wallet import Wallet
 node_num = 5
 wallet_num = 10
 opt_verbose = True
+# opt_verbose = False
 
 
-def dispatch_node(node_id, network):
-    node = Node(node_id, network)
+def dispatch_node(node):
     node.run()
 
 
@@ -29,7 +29,7 @@ def generate_transactions(wallet_list):
         time.sleep(random.random())
 
 
-def show_network(network, opt_verbose):
+def show_network(network, node_dict, opt_verbose=True):
     while True:
         out = ""
         max_len = 0
@@ -40,6 +40,8 @@ def show_network(network, opt_verbose):
                 longest_chain_list = chain_list
                 max_len = len(chain_list)
 
+            status = node_dict[node_id].status
+
             chain = "-".join(
                 [
                     "[" + hashlib.sha256(
@@ -49,17 +51,17 @@ def show_network(network, opt_verbose):
                 ]
             )
 
-            out += f"{node_id[:4]}:\t{chain}\n"
+            out += f"{node_id[:4]}:\t{status}\t{chain}\n"
 
         if out != "":
             if opt_verbose:
                 os.system("clear")
-                print(f"Node\tChains\n\n{out}")
+                print(f"Node\tStatus\t\tChains\n\n{out}")
 
             with open("chain.json", "w", encoding="utf-8") as f:
                 f.write("[" + ",\n".join(longest_chain_list) + "]")
 
-            time.sleep(1)
+            time.sleep(0.1)
 
 
 def main():
@@ -75,16 +77,19 @@ def main():
     ]
 
     # node
-    for node_id in node_id_list:
+    node_dict = {
+        node_id: Node(node_id, network) for node_id in node_id_list
+    }
+    for _, node in node_dict.items():
         threading.Thread(
             target=dispatch_node,
-            args=(node_id, network, )
+            args=(node, )
         ).start()
 
     # show_network
     threading.Thread(
         target=show_network,
-        args=(network, opt_verbose, )
+        args=(network, node_dict, opt_verbose, )
     ).start()
 
     # generate transaction
