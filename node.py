@@ -1,6 +1,9 @@
 import json
 import random
 import time
+import Crypto.Hash.SHA256
+import Crypto.PublicKey.RSA
+import Crypto.Signature.pkcs1_15
 from block import Block
 
 
@@ -8,15 +11,19 @@ DIFFICULTY = 4
 
 
 class Node:
-    def __init__(self, node_id, network):
-        self.node_id = node_id
+    def __init__(self, network):
         self.network = network
         self.chain = [Block.get_genesis_block(DIFFICULTY).repr]
-        self.node_list = set()
         self.status = ""
+        self.interval = random.randint(1, 10)   # as computing power diff
 
-        # as computing power diff
-        self.interval = random.randint(1, 10)
+        # sign
+        key = Crypto.PublicKey.RSA.generate(1024)
+        self.private_key = key.export_key(format="PEM")
+        self.node_id = key.publickey().export_key(format="PEM").decode()
+        self.signer = Crypto.Signature.pkcs1_15.new(
+            Crypto.PublicKey.RSA.importKey(self.private_key)
+        )
 
     @classmethod
     def proof_hash(
@@ -152,10 +159,17 @@ class Node:
         self.chain = longest_chain
         return bool_resolved
 
+    def post_updated_chain(self):
+        str_chain = json.dumps(self.chain, sort_keys=True)
+        hashed_chain = Crypto.Hash.SHA256.new(str_chain.encode())
+        sign = self.signer.sign(hashed_chain).hex()
+
+        self.network.update_chain(self.node_id, str_chain, sign)
+
     def run(self):
         while True:
             self.set_status("mining...")
             if self.mine():
                 self.set_status("mined\t")
 
-            self.network.update_chain(self.node_id, self.chain)
+            self.post_updated_chain()

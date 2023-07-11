@@ -1,21 +1,36 @@
+from collections import defaultdict
 import copy
+import json
 import threading
+import Crypto.Hash.SHA256
+import Crypto.PublicKey.RSA
+import Crypto.Signature.pkcs1_15
 
 
 class Network:
     def __init__(self):
-        self.node_chain_dict = dict()
-        self.transaction_pool = dict()
+        self.node_chain_dict = defaultdict(lambda: [])
+        self.transaction_pool = defaultdict(lambda: [])
         self.lock = threading.Lock()        # mutex
 
+    @staticmethod
+    def verify_chain(node_id, str_chain, sign):
+        hashed_chain = Crypto.Hash.SHA256.new(str_chain.encode())
+        verifier = Crypto.Signature.pkcs1_15.new(
+            Crypto.PublicKey.RSA.import_key(node_id.encode())
+        )
+        try:
+            verifier.verify(hashed_chain, bytes.fromhex(sign))
+            return True
+        except ValueError:
+            return False
+
     # chain
-    # TODO: add sign
-    def update_chain(self, node_id, chain):
-        self.node_chain_dict[node_id] = chain
+    def update_chain(self, node_id, str_chain, sign):
+        if Network.verify_chain(node_id, str_chain, sign):
+            self.node_chain_dict[node_id] = json.loads(str_chain)
 
     def get_chain(self, node_id):
-        if node_id not in self.node_chain_dict:
-            return []
         return self.node_chain_dict[node_id]
 
     def get_neighbor_chain_list(self, self_node_id):
@@ -36,10 +51,7 @@ class Network:
             self.transaction_pool[node_id].append(transaction)
 
     def get_transactions(self, node_id):
-        if node_id not in self.transaction_pool:
-            return []
-        else:
-            transactions = copy.deepcopy(self.transaction_pool[node_id])
-            self.transaction_pool[node_id][:] = []
-            return transactions
+        transactions = copy.deepcopy(self.transaction_pool[node_id])
+        self.transaction_pool[node_id][:] = []
+        return transactions
     # end transaction

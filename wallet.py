@@ -13,13 +13,13 @@ class Wallet:
         self.network = network
         self.node_id_list = node_id_list
 
-    def sign_transaction(self, transaction):
-        signer = Crypto.Signature.pkcs1_15.new(
+        self.signer = Crypto.Signature.pkcs1_15.new(
             Crypto.PublicKey.RSA.importKey(self.private_key)
         )
 
+    def sign_transaction(self, transaction):
         hashed_transaction = Crypto.Hash.SHA256.new(transaction.repr.encode())
-        transaction.sign = signer.sign(hashed_transaction).hex()
+        transaction.sign = self.signer.sign(hashed_transaction).hex()
         return transaction
 
     def send(self, receiver_addr, value):

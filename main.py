@@ -4,7 +4,6 @@ import os
 import random
 import threading
 import time
-import uuid
 from network import Network
 from node import Node
 from wallet import Wallet
@@ -40,8 +39,8 @@ def show_network(network, node_dict, opt_verbose=True):
                 longest_chain_list = chain_list
                 max_len = len(chain_list)
 
+            short_node_id = hashlib.sha256(node_id.encode()).hexdigest()[:4]
             status = node_dict[node_id].status
-
             chain = "-".join(
                 [
                     "[" + hashlib.sha256(
@@ -51,7 +50,7 @@ def show_network(network, node_dict, opt_verbose=True):
                 ]
             )
 
-            out += f"{node_id[:4]}:\t{status}\t{chain}\n"
+            out += f"{short_node_id}:\t{status}\t{chain}\n"
 
         if out != "":
             if opt_verbose:
@@ -67,19 +66,19 @@ def show_network(network, node_dict, opt_verbose=True):
 def main():
     # init
     network = Network()
-    node_id_list = [str(uuid.uuid4()) for _ in range(node_num)]
+    node_list = [Node(network) for _ in range(node_num)]
+    node_dict = {
+        node.node_id: node for node in node_list
+    }
     wallet_list = [
         Wallet(
             network,
-            random.sample(node_id_list, random.randint(1, node_num)),
+            random.sample(node_dict.keys(), random.randint(1, node_num)),
         )
         for _ in range(wallet_num)
     ]
 
     # node
-    node_dict = {
-        node_id: Node(node_id, network) for node_id in node_id_list
-    }
     for _, node in node_dict.items():
         threading.Thread(
             target=dispatch_node,
