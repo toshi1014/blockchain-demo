@@ -7,6 +7,7 @@ import time
 from network import Network
 from node import Node
 from wallet import Wallet
+from sentinel import Sentinel
 
 
 node_num = 5
@@ -19,12 +20,36 @@ def dispatch_node(node):
     node.run()
 
 
+def dispatch_sentinel(sentinel):
+    sentinel.run()
+
+
 def generate_transactions(wallet_list):
+    filename = "transaction_record.json"
+
+    if os.path.exists(filename):
+        os.remove(filename)
+    f = open(filename, "a", encoding="utf8")
+
     while True:
+        tx_list = []
+
         for _ in range(random.randint(1, 2)):
             sender, receiver = random.sample(wallet_list, 2)
             value = random.randint(1, 100)
             sender.send(receiver.addr, value)
+            tx_list.append({
+                "sender_addr": sender.addr.decode(),
+                "receiver_addr": receiver.addr.decode(),
+                "value": value,
+            })
+
+        f.write(",".join(
+            list(map(
+                lambda tx: json.dumps(tx, sort_keys=True), tx_list
+            ))
+        ) + ",")
+
         time.sleep(random.random())
 
 
@@ -65,7 +90,9 @@ def show_network(network, node_dict, opt_verbose=True):
 
 def main():
     # init
-    network = Network()
+    sentinel = Sentinel()
+    network = Network(sentinel)
+    sentinel.register_network(network)
     node_list = [Node(network) for _ in range(node_num)]
     node_dict = {
         node.node_id: node for node in node_list
@@ -95,6 +122,12 @@ def main():
     threading.Thread(
         target=generate_transactions,
         args=(wallet_list, )
+    ).start()
+
+    # sentinel
+    threading.Thread(
+        target=dispatch_sentinel,
+        args=(sentinel, )
     ).start()
 
 

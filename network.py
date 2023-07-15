@@ -8,7 +8,8 @@ import Crypto.Signature.pkcs1_15
 
 
 class Network:
-    def __init__(self):
+    def __init__(self, sentinel):
+        self.sentinel = sentinel
         self.node_chain_dict = defaultdict(lambda: [])
         self.transaction_pool = defaultdict(lambda: [])
         self.lock = threading.Lock()        # mutex
@@ -45,10 +46,8 @@ class Network:
 
     # transaction
     def post_transaction(self, node_id, transaction):
-        if node_id not in self.transaction_pool:
-            self.transaction_pool[node_id] = [transaction]
-        else:
-            self.transaction_pool[node_id].append(transaction)
+        self.sentinel.post_transaction(transaction)
+        self.transaction_pool[node_id].append(transaction)
 
     def get_transactions(self, node_id):
         transactions = copy.deepcopy(self.transaction_pool[node_id])
