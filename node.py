@@ -79,9 +79,10 @@ class Node:
 
             if not Node.is_valid_proof(
                 block["block_header"]["previous_block_hash"],
-                Block.hash(block["transactions"]),
+                Block.hash(json.dumps(block["transactions"], sort_keys=True)),
                 block["block_header"]["nonce"],
             ):
+
                 return False
 
             last_block = str_block
@@ -115,19 +116,18 @@ class Node:
         time.sleep(self.interval)
 
         previous_block = self.chain[-1]
-        new_transaction_list = self.network.get_transactions(self.node_id)
+        str_new_transaction_list = self.network.get_transactions(self.node_id)
 
-        if len(new_transaction_list) == 0:
+        if len(str_new_transaction_list) == 0:
             return False
 
         previous_block_hash = Block.hash(previous_block)
-        str_new_transaction_list = list(
-            map(lambda tx: tx.repr, new_transaction_list)
-        )
         merkle_root = Node.get_merkle_root(str_new_transaction_list)
 
-        str_transactions = "[" + ",".join(str_new_transaction_list) + "]"
-        nonce = self.proof_of_work(previous_block_hash, str_transactions)
+        nonce = self.proof_of_work(
+            previous_block_hash,
+            "[" + ", ".join(str_new_transaction_list) + "]",
+        )
 
         if nonce is None:   # already been mined
             return False
@@ -138,8 +138,11 @@ class Node:
             merkle_root=merkle_root,
             difficulty=DIFFICULTY,
             nonce=nonce,
-            transaction_counter=len(new_transaction_list),
-            transactions=str_transactions,
+            transaction_counter=len(str_new_transaction_list),
+            transactions=[
+                json.loads(str_new_tx)
+                for str_new_tx in str_new_transaction_list
+            ],
         )
 
         self.chain.append(new_block.repr)

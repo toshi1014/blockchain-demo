@@ -1,4 +1,5 @@
 import json
+import time
 import Crypto.Hash.SHA256
 import Crypto.PublicKey.RSA
 import Crypto.Signature.pkcs1_15
@@ -11,6 +12,7 @@ class Transaction:
     sign: str = None
 
     def __init__(self, sender_addr, receiver_addr, value):
+        self.timestamp = time.time()
         self.sender_addr = sender_addr.decode()
         self.receiver_addr = receiver_addr.decode()
         self.value = value
@@ -18,9 +20,11 @@ class Transaction:
     @property
     def repr(self):
         prop = {
+            "timestamp": self.timestamp,
             "sender_addr": self.sender_addr,
             "receiver_addr": self.receiver_addr,
             "value": self.value,
+            "sign": self.sign,
         }
         return json.dumps(prop, sort_keys=True)
 

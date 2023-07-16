@@ -1,11 +1,35 @@
 import json
+import os
 import time
+from node import Node
+
+
+filename_chain = "chain.json"
+filename_transaction_record = "transaction_record.json"
 
 
 class Sentinel:
     def __init__(self):
         self.transaction_record = []
         self.network = None
+        self.longest_chain = []
+
+        if os.path.exists(filename_transaction_record):
+            os.remove(filename_transaction_record)
+
+        self.file_transaction_record = open(
+            filename_transaction_record, "a", encoding="utf8")
+
+    def kill(self, func_name):
+        print("Broken chain: triggered by ", func_name.__name__)
+        os._exit(0)
+
+    def register_network(self, network):
+        self.network = network
+
+    def post_transaction(self, transaction):
+        self.transaction_record.append(transaction)
+        self.file_transaction_record.write(transaction + ",")
 
     def get_longest_chain(self):
         longest_chain = []
@@ -17,35 +41,41 @@ class Sentinel:
         return longest_chain
 
     def is_all_transactions_included(self):
-        chain = self.get_longest_chain()
-
-        if len(chain) <= 1:      # ignore genesis block
-            return True
-
-        transaction_chain = [
+        transaction_in_chain = [
             tx for transactions in
             [
                 json.loads(str_block)["transactions"]
-                for str_block in chain
+                for str_block in self.longest_chain
             ]
             for tx in transactions
         ]
 
         flg_invalid = sum([
-            int(tx_record not in transaction_chain)
+            int(tx_record not in transaction_in_chain)
             for tx_record in self.transaction_record
         ])
 
         return flg_invalid != 0
 
-    def register_network(self, network):
-        self.network = network
+    def is_valid_chain(self):
+        return Node.is_valid_chain(self.longest_chain)
 
-    def post_transaction(self, transaction):
-        self.transaction_record.append(transaction)
+    def historian(self):
+        with open(filename_chain, "w", encoding="utf-8") as f:
+            f.write("[" + ",\n".join(self.longest_chain) + "]")
 
     def run(self):
+        checklist = [
+            self.is_all_transactions_included,
+            self.is_valid_chain,
+        ]
+
         while True:
-            if not self.is_all_transactions_included():
-                raise RuntimeError("Broken transactions")
+            self.longest_chain = self.get_longest_chain()
+            self.historian()
+
+            if len(self.longest_chain) > 1:      # ignore genesis block
+                for func in checklist:
+                    if not func():
+                        self.kill(func)
             time.sleep(1)

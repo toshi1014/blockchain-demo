@@ -10,12 +10,6 @@ from wallet import Wallet
 from sentinel import Sentinel
 
 
-node_num = 5
-wallet_num = 10
-opt_verbose = True
-# opt_verbose = False
-
-
 def dispatch_node(node):
     node.run()
 
@@ -25,45 +19,20 @@ def dispatch_sentinel(sentinel):
 
 
 def generate_transactions(wallet_list):
-    filename = "transaction_record.json"
-
-    if os.path.exists(filename):
-        os.remove(filename)
-    f = open(filename, "a", encoding="utf8")
-
     while True:
-        tx_list = []
-
         for _ in range(random.randint(1, 2)):
             sender, receiver = random.sample(wallet_list, 2)
             value = random.randint(1, 100)
             sender.send(receiver.addr, value)
-            tx_list.append({
-                "sender_addr": sender.addr.decode(),
-                "receiver_addr": receiver.addr.decode(),
-                "value": value,
-            })
-
-        f.write(",".join(
-            list(map(
-                lambda tx: json.dumps(tx, sort_keys=True), tx_list
-            ))
-        ) + ",")
 
         time.sleep(random.random())
 
 
-def show_network(network, node_dict, opt_verbose=True):
+def show_network(network, node_dict):
     while True:
         out = ""
-        max_len = 0
-        longest_chain_list = []
 
         for node_id, chain_list in list(network.node_chain_dict.items()):
-            if len(chain_list) > max_len:
-                longest_chain_list = chain_list
-                max_len = len(chain_list)
-
             short_node_id = hashlib.sha256(node_id.encode()).hexdigest()[:4]
             status = node_dict[node_id].status
             chain = "-".join(
@@ -78,17 +47,19 @@ def show_network(network, node_dict, opt_verbose=True):
             out += f"{short_node_id}:\t{status}\t{chain}\n"
 
         if out != "":
-            if opt_verbose:
-                os.system("clear")
-                print(f"Node\tStatus\t\tChains\n\n{out}")
+            os.system("clear")
+            print(f"Node\tStatus\t\tChains\n\n{out}")
 
-            with open("chain.json", "w", encoding="utf-8") as f:
-                f.write("[" + ",\n".join(longest_chain_list) + "]")
-
-            time.sleep(0.1)
+        time.sleep(0.1)
 
 
 def main():
+    # params
+    node_num = 5
+    wallet_num = 10
+    bool_show_network = True
+    bool_show_network = False
+
     # init
     sentinel = Sentinel()
     network = Network(sentinel)
@@ -113,10 +84,11 @@ def main():
         ).start()
 
     # show_network
-    threading.Thread(
-        target=show_network,
-        args=(network, node_dict, opt_verbose, )
-    ).start()
+    if bool_show_network:
+        threading.Thread(
+            target=show_network,
+            args=(network, node_dict, )
+        ).start()
 
     # generate transaction
     threading.Thread(
