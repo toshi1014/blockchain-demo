@@ -58,7 +58,7 @@ def main():
     node_num = 5
     wallet_num = 10
     bool_show_network = True
-    bool_show_network = False
+    # bool_show_network = False
 
     # init
     sentinel = Sentinel()

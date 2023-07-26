@@ -25,9 +25,8 @@ class Wallet:
     def send(self, receiver_addr, value):
         tx = Transaction(self.addr, receiver_addr, value)
         str_signed_tx = self.sign_transaction(tx).repr
-        self.broadcast(str_signed_tx)
+        self.post_transaction(str_signed_tx)
         return str_signed_tx
 
-    def broadcast(self, str_transaction):
-        for node_id in self.node_id_list:
-            self.network.post_transaction(node_id, str_transaction)
+    def post_transaction(self, str_transaction):
+        self.network.post_transaction(str_transaction)

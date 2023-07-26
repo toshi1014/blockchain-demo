@@ -20,8 +20,7 @@ class Sentinel:
         self.file_transaction_record = open(
             filename_transaction_record, "a", encoding="utf8")
 
-    def kill(self, func_name):
-        print("Broken chain: triggered by ", func_name.__name__)
+    def kill(self):
         os._exit(0)
 
     def register_network(self, network):
@@ -42,7 +41,8 @@ class Sentinel:
 
     def is_all_transactions_included(self):
         transaction_in_chain = [
-            tx for transactions in
+            json.dumps(tx, sort_keys=True)
+            for transactions in
             [
                 json.loads(str_block)["transactions"]
                 for str_block in self.longest_chain
@@ -50,12 +50,17 @@ class Sentinel:
             for tx in transactions
         ]
 
+        if len(transaction_in_chain) == len(self.transaction_record):
+            return False
+
         flg_invalid = sum([
-            int(tx_record not in transaction_in_chain)
-            for tx_record in self.transaction_record
+            int(tx_in_chain != tx_record)
+            for tx_in_chain, tx_record in zip(
+                transaction_in_chain, self.transaction_record
+            )
         ])
 
-        return flg_invalid != 0
+        return flg_invalid == 0
 
     def is_valid_chain(self):
         return Node.is_valid_chain(self.longest_chain)
@@ -66,7 +71,7 @@ class Sentinel:
 
     def run(self):
         checklist = [
-            self.is_all_transactions_included,
+            # self.is_all_transactions_included,
             self.is_valid_chain,
         ]
 

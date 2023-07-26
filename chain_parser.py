@@ -6,21 +6,25 @@ filename_transactions = "transaction_record.json"
 
 
 def is_same_transactions(chain, transaction_record):
-    transaction_chain = [
-        tx for transactions in
+    str_transaction_in_chain = [
+        json.dumps(tx, sort_keys=True)
+        for transactions in
         [
             block["transactions"]
             for block in chain
         ]
         for tx in transactions
     ]
+    str_transaction_record = [
+        json.dumps(tx, sort_keys=True)
+        for tx in transaction_record
+    ]
 
     flg_invalid = sum([
-        int(tx_chain != tx_record)
-        for tx_chain, tx_record in zip(transaction_chain, transaction_record)
+        int(str_tx_in_chain != str_tx_record)
+        for str_tx_in_chain, str_tx_record in zip(str_transaction_in_chain, str_transaction_record)
     ])
-
-    return flg_invalid != 0
+    return flg_invalid == 0
 
 
 def main():

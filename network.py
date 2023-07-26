@@ -45,12 +45,16 @@ class Network:
     # end chain
 
     # transaction
-    def post_transaction(self, node_id, transaction):
+    def broadcast_transaction(self, transaction):
+        for node_id in self.node_chain_dict.keys():
+            self.transaction_pool[node_id].append(transaction)
+
+    def post_transaction(self, transaction):
         self.sentinel.post_transaction(transaction)
-        self.transaction_pool[node_id].append(transaction)
+        self.broadcast_transaction(transaction)
 
     def get_transactions(self, node_id):
         transactions = copy.deepcopy(self.transaction_pool[node_id])
-        self.transaction_pool[node_id][:] = []
+        self.transaction_pool[node_id] = []
         return transactions
     # end transaction
