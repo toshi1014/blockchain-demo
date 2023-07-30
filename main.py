@@ -4,10 +4,7 @@ import os
 import random
 import threading
 import time
-from network import Network
-from node import Node
-from wallet import Wallet
-from sentinel import Sentinel
+import blockchain
 
 
 def dispatch_node(node):
@@ -61,15 +58,15 @@ def main():
     # bool_show_network = False
 
     # init
-    sentinel = Sentinel()
-    network = Network(sentinel)
+    sentinel = blockchain.Sentinel()
+    network = blockchain.Network(sentinel)
     sentinel.register_network(network)
-    node_list = [Node(network) for _ in range(node_num)]
+    node_list = [blockchain.Node(network) for _ in range(node_num)]
     node_dict = {
         node.node_id: node for node in node_list
     }
     wallet_list = [
-        Wallet(
+        blockchain.Wallet(
             network,
             random.sample(node_dict.keys(), random.randint(1, node_num)),
         )

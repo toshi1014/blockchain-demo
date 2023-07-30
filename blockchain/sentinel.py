@@ -1,7 +1,7 @@
 import json
 import os
 import time
-from node import Node
+from .node import Node
 
 
 filename_chain = "chain.json"

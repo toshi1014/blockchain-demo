@@ -1,7 +1,7 @@
 import Crypto.Hash.SHA256
 import Crypto.PublicKey.RSA
 import Crypto.Signature.pkcs1_15
-from transaction import Transaction
+from .transaction import Transaction
 
 
 class Wallet:

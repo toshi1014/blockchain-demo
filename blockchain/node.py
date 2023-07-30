@@ -4,7 +4,7 @@ import time
 import Crypto.Hash.SHA256
 import Crypto.PublicKey.RSA
 import Crypto.Signature.pkcs1_15
-from block import Block
+from .block import Block
 
 
 DIFFICULTY = 4
